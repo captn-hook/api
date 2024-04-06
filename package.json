@@ -1,0 +1,11 @@
+{
+  "name": "clouddev_node_api",
+  "version": "1.0.0",
+  "description": "api",
+  "main": "index.js",
+  "scripts": {
+    "main": "node index.js"
+  },
+  "author": "t hook",
+  "license": "ISC"
+}
