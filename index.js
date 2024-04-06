@@ -25,11 +25,11 @@ function updatebiz() { }
 // DELETE /businesses/:id
 function removebiz() { }
 
-// GET a list of all businesses
+// get a list of all businesses
 // GET /businesses
 function listbizes() { }
 
-// GET detailed information about a business
+// get detailed information about a business
 // GET /businesses/:id
 function bizdetails() { }
 
