@@ -3,7 +3,8 @@ import cors from 'cors';
 const app = express();
 app.use(express.json());
 app.use(cors());
-const port = 8000;
+//port from package.json
+const port = process.env.PORT || 8000;
 
 import * as indexJs from './index.js';
 // this feels wrong... but just imagine it as a router object
@@ -64,14 +65,14 @@ const review = {
     text: "great food, great service, great prices!", 
 };
 const photo = {
-    pid: "fe1a5a",
+    pId: "fe1a5a",
     bizId: "1",
-    userId: "1",
+    uId: "1",
     caption: "yum!",
     imageUrl: "www.dabombburritos.com/yum.jpg",
 };
 const user = {
-    uid: "1",
+    uId: "1",
     ownedBizes: ['1'], // list of bizIds
     uploadedPhotos: ['fe1a5a'], // list of pids
     writtenReviews: ['1'], // list of reviewIds

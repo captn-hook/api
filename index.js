@@ -87,9 +87,44 @@ let reviews = [];
 // POST /businesses/:id/reviews
 export function addreview() { 
     const PATH = '/businesses/:id/reviews';
+    const TYPE = 'post';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(reviews, review, PATH);
+    let FUNCTION = (req, res) => {
+        if (utils.validate(req.body, review)) {
 
+            //check bizId and uId
+            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
+                res.status(400).send('Invalid business ID');
+                return;
+            } else if (users.filter(user => user.uId === req.body.uId).length === 0) {
+                console.log('Invalid user ID:', req.body.uId);
+                console.log('Users:', users);
+                res.status(400).send('Invalid user ID');
+                return;
+            }
+
+            //check if review already exists
+            if (reviews.filter(rev => rev.bizId === req.body.bizId && rev.uId === req.body.uId).length > 0) {
+                res.status(400).send('Review already exists');
+                return;
+            } else {
+                //add review to user
+                let user = users.filter(user => user.uId === req.body.uId)[0];
+                if (user.writtenReviews === undefined) {
+                    user.writtenReviews = [req.body.bizId];
+                } else {
+                    user.writtenReviews.push(req.body.bizId);
+                }
+            }
+
+            reviews.push(req.body);
+            console.log('Sending 200: OK from post review');
+            res.status(200).send();
+        } else {
+            res.status(400).send('Invalid data from post review');
+        }
+    }
+    
     return {TYPE, PATH, FUNCTION};
 
 }
@@ -115,6 +150,15 @@ export function deletereview() {
 
 }
 
+// get all reviews for testing
+export function listreviews() {
+    const PATH = '/reviews';
+
+    let { type: TYPE, func: FUNCTION } = utils.get(reviews);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
 // list all reviews by a user
 // GET /users/:id/reviews
 export function listuserreviews() {
@@ -126,7 +170,7 @@ export function listuserreviews() {
 
         let userReviews = reviews.filter(review => review.uId === id);
 
-        res.status(200).send(userReviews);
+        res.status(200).send(utils.paginate(req, userReviews));
     }
 
     return {TYPE, PATH, FUNCTION};    
@@ -144,7 +188,7 @@ export function bizreviews() {
 
         let bizReviews = reviews.filter(review => review.bizId === id);
 
-        res.status(200).send(bizReviews);
+        res.status(200).send(utils.paginate(req, bizReviews));
     }
 
     return {TYPE, PATH, FUNCTION};     
@@ -153,9 +197,9 @@ export function bizreviews() {
 
 // photos
 const photo = {
-    pid: "1",
+    pId: "1",
     bizId: "1",
-    userId: "1",
+    uId: "1",
     caption: "0",
     imageUrl: "1",
 };
@@ -166,8 +210,41 @@ let photos = [];
 // POST /businesses/:id/photos
 export function uploadphoto() { 
     const PATH = '/businesses/:id/photos';
+    const TYPE = 'post';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(photos, photo, PATH);
+    let FUNCTION = (req, res) => {
+        if (utils.validate(req.body, photo)) {
+
+            //check bizId and uId
+            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
+                res.status(400).send('Invalid business ID');
+                return;
+            } else if (users.filter(user => user.uId === req.body.uId).length === 0) {
+                res.status(400).send('Invalid user ID');
+                return;
+            }
+
+            //check if photo already exists
+            if (photos.filter(photo => photo.bizId === req.body.bizId && photo.uId === req.body.uId).length > 0) {
+                res.status(400).send('Photo already exists');
+                return;
+            } else {
+                //add photo to user
+                let user = users.filter(user => user.uId === req.body.uId)[0];
+                if (user.uploadedPhotos === undefined) {
+                    user.uploadedPhotos = [req.body.pId];
+                } else {
+                    user.uploadedPhotos.push(req.body.pId);
+                }
+            }
+
+            photos.push(req.body);
+            console.log('Sending 200: OK from post photo');
+            res.status(200).send();
+        } else {
+            res.status(400).send('Invalid data');
+        }
+    }
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -192,22 +269,34 @@ export function updatephotocaption() {
     return {TYPE, PATH, FUNCTION};
 }
 
+// get all photos for testing
+export function listphotos() {
+    const PATH = '/photos';
+
+    let { type: TYPE, func: FUNCTION } = utils.get(photos);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
 // users
 const user = {
-    uid: "1",
+    uId: "1",
     ownedBizes: [],
     uploadedPhotos: [],
     writtenReviews: [], // list reviews by bizId
 };
 
-let users = [
-    {
-        uid: "1",
-        ownedBizes: ["1"],
-        uploadedPhotos: ["1"],
-        writtenReviews: ["1"],
-    }
-];
+let users = [];
+
+// add a new user
+// POST /users
+export function adduser() { 
+    const PATH = '/users';
+  
+    let { type: TYPE, func: FUNCTION } = utils.post(users, user, PATH);
+
+    return {TYPE, PATH, FUNCTION};
+}
 
 // list all businesses owned by a user
 // GET /users/:id/businesses
@@ -220,7 +309,7 @@ export function listuserbizes() {
 
         let userBizes = businesses.filter(biz => biz.uid === id);
 
-        res.status(200).send(userBizes);
+        res.status(200).send(utils.paginate(req, userBizes));
     }
 
     return {TYPE, PATH, FUNCTION};
@@ -237,7 +326,38 @@ export function listuserphotos() {
 
         let userPhotos = photos.filter(photo => photo.userId === id);
 
-        res.status(200).send(userPhotos);
+        res.status(200).send(utils.paginate(req, userPhotos));
+    }
+
+    return {TYPE, PATH, FUNCTION};
+}
+
+// add a business to a user's list of owned businesses
+// POST /users/:id/businesses
+export function addbiztouser() { 
+    const PATH = '/users/:id/businesses';
+    const TYPE = 'post';
+
+    let FUNCTION = (req, res) => {
+        let id = req.params.id;
+
+        if (utils.validate(req.body, biz)) {
+            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
+                res.status(400).send('Invalid business ID');
+                return;
+            }
+
+            let user = users.filter(user => user.uId === id)[0];
+            if (user.ownedBizes === undefined) {
+                user.ownedBizes = [req.body.bizId];
+            } else {
+                user.ownedBizes.push(req.body.bizId);
+            }
+            
+            res.status(200).send();
+        } else {
+            res.status(400).send('Invalid data');
+        }
     }
 
     return {TYPE, PATH, FUNCTION};

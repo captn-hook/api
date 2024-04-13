@@ -8,11 +8,11 @@ export function validate(obj, OG) {
     let valid = true;
     try {
         keys.forEach(key => {
-            console.log(key, newOG[key]);
-            console.log(obj);
-            console.log(obj[key]);
-            if (newOG[key] === "1") {
-                if (!obj[key]) {
+            if (newOG[key] == "1") {
+                if (obj[key] === undefined || obj[key] === "") {
+                    console.log('Error:', key, 'is required');
+                    console.log('Object:', obj);
+                    console.log('Value', obj[key]);
                     valid = false;
                 }
             }
@@ -27,7 +27,7 @@ export function validate(obj, OG) {
 
 export function update(obj, newObj) {
     //update the object with the new object
-    let keys = Object.keys(newObj);
+    let keys = Object.keys(obj);
     keys.forEach(key => {
         obj[key] = newObj[key];
     });
@@ -56,20 +56,17 @@ export function post(arr, OG, pathOG) {
     const type = 'post';
     const func = (req, res) => {
 
-        console.log('POST:', req);
-        console.log('POST:', req.body);
-
         if (validate(req.body, OG)) {
             arr.push(newCopy(req.body, OG));
 
             //send the new arr endpoint
             let path = pathOG + '/' + (arr.length - 1);
             let status = 201;
-            console.log('Sending 201: Created from post');
+            console.log('Sending 201: Created from post:', path);
             res.status(status).send(path);
 
         } else {
-            console.log('Sending 400: Invalid data');
+            console.log('Sending 400: Invalid data from post:', req.body);
             res.status(400).send(`Invalid data`);
         }
     }
@@ -82,15 +79,17 @@ export function put(arr, OG) {
     const func = (req, res) => {
 
         let id = req.params.id;
+        console.log('id:', id, 'arr:', arr.length);
 
-        if (id < arr.length && utils.validate(req.body, OG)) {
+        if (id < arr.length && validate(req.body, OG)) {
 
-            arr[id] = utils.update(arr[id], req.body);
-            console.log('Sending 200: OK from put');
+            arr[id] = update(arr[id], req.body);
+            console.log('Updated:', arr[id]);
+            console.log('Sending 200: OK from put id:', id);
             res.status(200).send();
 
         } else {
-            console.log('Sending 400: Invalid data');
+            console.log('Sending 400: Invalid data: ', req.body);
             res.status(400).send(`Invalid data`);
         }
     }
@@ -98,12 +97,23 @@ export function put(arr, OG) {
     return { type, func };
 }
 
+export function paginate(req, arr) {
+        const page = req.query.page || 1;
+        const limit = req.query.limit || arr.length;
+        const start = (page - 1) * limit;
+        const end = page * limit;
+
+        return arr.slice(start, end);
+}
+
+
 export function get(arr) {
     //requires names arr items
     const type = 'get';
     const func = (req, res) => {
-
-        res.status(200).send(arr);
+        
+        console.log('Sending 200: OK from get');
+        res.status(200).send(paginate(req, arr));
     }
 
     return { type, func };
@@ -117,10 +127,10 @@ export function getID(arr) {
         let id = req.params.id;
 
         if (id < arr.length) {
-            console.log('Sending 200: OK from getID');
+            console.log('Sending 200: OK getting id:', id);
             res.status(200).send(arr[id]);
         } else {
-            console.log('Sending 400: Invalid id');
+            console.log('Sending 400: Invalid id:', id);inva
             res.status(400).send('Invalid id');
         }
     }
@@ -137,10 +147,10 @@ export function del(arr) {
 
         if (id < arr.length) {
             arr.splice(id, 1);
-            console.log('Sending 200: OK from del');
+            console.log('Sending 200: OK from delete id:', id);
             res.status(200).send();
         } else {
-            console.log('Sending 400: Invalid id');
+            console.log('Sending 400: Invalid id:', id);
             res.status(400).send('Invalid id');
         }
     }
