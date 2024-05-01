@@ -1,0 +1,37 @@
+# NODE API FOR RESTAURANTS
+
+services:
+  node-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - mongo
+    networks:
+      - node-mongo
+    environment:
+      - MONGO_USERNAME=root
+      - MONGO_PASSWORD=password
+      - MONGO_HOST=mongo-server
+      - MONGO_PORT=27017
+      - MONGO_DB=restaurants
+
+  mongo:
+    image: mongo
+    container_name: mongo-server
+    ports:
+      - "27017:27017"
+    networks:
+      - node-mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+networks:
+  node-mongo:
+    driver: bridge

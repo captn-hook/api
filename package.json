@@ -4,13 +4,17 @@
   "description": "api",
   "main": "index.js",
   "scripts": {
-    "main": "node server.js"
+    "env-windows": "set MONGO_INITDB_DATABASE=database && set MONGO_INITDB_ROOT_PASSWORD=password && set MONGO_INITDB_ROOT_USERNAME=root",
+    "env-linux": "export MONGO_INITDB_DATABASE=database && export MONGO_INITDB_ROOT_PASSWORD=password && export MONGO_INITDB_ROOT_USERNAME=root",
+    "dev": "nodemon server.js"
   },
   "author": "t hook",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "mongodb": "^6.5.0",
+    "mongoose": "^8.3.3"
   },
   "type": "module",
   "port": 8000
