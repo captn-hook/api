@@ -10,7 +10,9 @@ you can visit http://localhost:8000 to see all the collections, or individually 
 [photos](http://localhost:8000/photos)
 
 and you can run 
+    
     ./tests/runtests.sh
+
 to test the api, which will also add some data to the database
 
 
