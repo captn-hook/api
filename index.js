@@ -1,6 +1,5 @@
-import mongoose from 'mongoose';
 
-import { Biz, Review, Photo, User } from './models.js';
+import { Biz, Review, Photo, User } from './schema.js';
 
 
 import * as utils from './utils.js';
@@ -20,8 +19,6 @@ const biz = {
     email: "0",
 };
 
-let businesses = [];
-
 // Function Signature
 // TYPE, PATH, API FUNCTION
 // GET /businesses listbizes
@@ -32,7 +29,7 @@ let businesses = [];
 export function addBusiness() { 
     const PATH = '/businesses';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(businesses, biz, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.post(Biz, biz, PATH);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -42,7 +39,7 @@ export function addBusiness() {
 export function updatebiz() { 
     const PATH = '/businesses/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.put(businesses, biz);
+    let { type: TYPE, func: FUNCTION } = utils.put(Biz, biz);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -52,7 +49,7 @@ export function updatebiz() {
 export function removebiz() { 
     const PATH = '/businesses/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.del(businesses);
+    let { type: TYPE, func: FUNCTION } = utils.del(Biz, Object.keys(biz)[0]);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -62,7 +59,7 @@ export function removebiz() {
 export function listbizes() { 
     const PATH = '/businesses';
 
-    let { type: TYPE, func: FUNCTION } = utils.get(businesses);
+    let { type: TYPE, func: FUNCTION } = utils.get(Biz);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -72,13 +69,14 @@ export function listbizes() {
 export function bizdetails() { 
     const PATH = '/businesses/:id';
  
-    let { type: TYPE, func: FUNCTION } = utils.getID(businesses);
+    let { type: TYPE, func: FUNCTION } = utils.getID(Biz, Object.keys(biz)[0]);
 
     return {TYPE, PATH, FUNCTION};
 }
 
 // reviews
 const review = {
+    rId: "1",
     bizId: "1",
     uId: "1",
     stars: 0,
@@ -86,49 +84,12 @@ const review = {
     text: "0", 
 };
 
-let reviews = [];
-
 // write a review for a business
 // POST /businesses/:id/reviews
 export function addreview() { 
     const PATH = '/businesses/:id/reviews';
-    const TYPE = 'post';
-
-    let FUNCTION = (req, res) => {
-        if (utils.validate(req.body, review)) {
-
-            //check bizId and uId
-            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
-                res.status(400).send('Invalid business ID');
-                return;
-            } else if (users.filter(user => user.uId === req.body.uId).length === 0) {
-                console.log('Invalid user ID:', req.body.uId);
-                console.log('Users:', users);
-                res.status(400).send('Invalid user ID');
-                return;
-            }
-
-            //check if review already exists
-            if (reviews.filter(rev => rev.bizId === req.body.bizId && rev.uId === req.body.uId).length > 0) {
-                res.status(400).send('Review already exists');
-                return;
-            } else {
-                //add review to user
-                let user = users.filter(user => user.uId === req.body.uId)[0];
-                if (user.writtenReviews === undefined) {
-                    user.writtenReviews = [req.body.bizId];
-                } else {
-                    user.writtenReviews.push(req.body.bizId);
-                }
-            }
-
-            reviews.push(req.body);
-            console.log('Sending 200: OK from post review');
-            res.status(200).send();
-        } else {
-            res.status(400).send('Invalid data from post review');
-        }
-    }
+    
+    let { type: TYPE, func: FUNCTION } = utils.post(Review, review, PATH);
     
     return {TYPE, PATH, FUNCTION};
 
@@ -139,7 +100,7 @@ export function addreview() {
 export function updatereview() { 
     const PATH = '/reviews/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.put(reviews, review, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.put(Review, review, PATH);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -149,17 +110,27 @@ export function updatereview() {
 export function deletereview() { 
     const PATH = '/reviews/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.del(reviews, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.del(Review, Object.keys(review)[0]);
 
     return {TYPE, PATH, FUNCTION};
 
+}
+
+// get a review
+// GET /reviews/:id
+export function getreview() { 
+    const PATH = '/reviews/:id';
+
+    let { type: TYPE, func: FUNCTION } = utils.getID(Review, Object.keys(review)[0]);
+
+    return {TYPE, PATH, FUNCTION};
 }
 
 // get all reviews for testing
 export function listreviews() {
     const PATH = '/reviews';
 
-    let { type: TYPE, func: FUNCTION } = utils.get(reviews);
+    let { type: TYPE, func: FUNCTION } = utils.get(Review);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -169,13 +140,15 @@ export function listreviews() {
 export function listuserreviews() {
     const PATH = '/users/:id/reviews';
     const TYPE = 'get';
-
-    let FUNCTION = (req, res) => {
-        let id = req.params.id;
-
-        let userReviews = reviews.filter(review => review.uId === id);
-
-        res.status(200).send(utils.paginate(req, userReviews));
+    
+    let FUNCTION = async (req, res) => {
+        let reviews = await Review.find({uId: req.params.id});
+        
+        if (reviews) {
+            res.status(200).send(utils.paginate(req, reviews));
+        } else {
+            res.status(400).send('Invalid user id');
+        }
     }
 
     return {TYPE, PATH, FUNCTION};    
@@ -188,12 +161,14 @@ export function bizreviews() {
     const PATH = '/businesses/:id/reviews';
     const TYPE = 'get';
 
-    let FUNCTION = (req, res) => {
-        let id = req.params.id;
+    let FUNCTION = async (req, res) => {
+        let reviews = await Review.find({bizId: req.params.id});
 
-        let bizReviews = reviews.filter(review => review.bizId === id);
-
-        res.status(200).send(utils.paginate(req, bizReviews));
+        if (reviews) {
+            res.status(200).send(utils.paginate(req, reviews));
+        } else {
+            res.status(400).send('Invalid business id');
+        }
     }
 
     return {TYPE, PATH, FUNCTION};     
@@ -209,47 +184,12 @@ const photo = {
     imageUrl: "1",
 };
 
-let photos = [];
-
 // upload a photo for a business
 // POST /businesses/:id/photos
 export function uploadphoto() { 
     const PATH = '/businesses/:id/photos';
-    const TYPE = 'post';
-
-    let FUNCTION = (req, res) => {
-        if (utils.validate(req.body, photo)) {
-
-            //check bizId and uId
-            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
-                res.status(400).send('Invalid business ID');
-                return;
-            } else if (users.filter(user => user.uId === req.body.uId).length === 0) {
-                res.status(400).send('Invalid user ID');
-                return;
-            }
-
-            //check if photo already exists
-            if (photos.filter(photo => photo.bizId === req.body.bizId && photo.uId === req.body.uId).length > 0) {
-                res.status(400).send('Photo already exists');
-                return;
-            } else {
-                //add photo to user
-                let user = users.filter(user => user.uId === req.body.uId)[0];
-                if (user.uploadedPhotos === undefined) {
-                    user.uploadedPhotos = [req.body.pId];
-                } else {
-                    user.uploadedPhotos.push(req.body.pId);
-                }
-            }
-
-            photos.push(req.body);
-            console.log('Sending 200: OK from post photo');
-            res.status(200).send();
-        } else {
-            res.status(400).send('Invalid data');
-        }
-    }
+    
+    let { type: TYPE, func: FUNCTION } = utils.post(Photo, photo, PATH);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -259,7 +199,7 @@ export function uploadphoto() {
 export function removephoto() { 
     const PATH = '/photos/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.del(photos, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.del(Photo, Object.keys(photo)[0]);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -269,7 +209,17 @@ export function removephoto() {
 export function updatephotocaption() { 
     const PATH = '/photos/:id';
 
-    let { type: TYPE, func: FUNCTION } = utils.put(photos, photo, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.put(Photo, photo, PATH);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
+// get a photo
+// GET /photos/:id
+export function getphoto() { 
+    const PATH = '/photos/:id';
+
+    let { type: TYPE, func: FUNCTION } = utils.getID(Photo, Object.keys(photo)[0]);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -278,7 +228,7 @@ export function updatephotocaption() {
 export function listphotos() {
     const PATH = '/photos';
 
-    let { type: TYPE, func: FUNCTION } = utils.get(photos);
+    let { type: TYPE, func: FUNCTION } = utils.get(Photo);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -298,7 +248,37 @@ let users = [];
 export function adduser() { 
     const PATH = '/users';
   
-    let { type: TYPE, func: FUNCTION } = utils.post(users, user, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.post(User, user, PATH);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
+// update a user
+// POST /users/:id
+export function updateuser() { 
+    const PATH = '/users/:id';
+
+    let { type: TYPE, func: FUNCTION } = utils.put(User, user);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
+// remove a user
+// DELETE /users/:id
+export function removeuser() { 
+    const PATH = '/users/:id';
+
+    let { type: TYPE, func: FUNCTION } = utils.del(User, Object.keys(user)[0]);
+
+    return {TYPE, PATH, FUNCTION};
+}
+
+// get a user
+// GET /users/:id
+export function getuser() { 
+    const PATH = '/users/:id';
+
+    let { type: TYPE, func: FUNCTION } = utils.getID(User, Object.keys(user)[0]);
 
     return {TYPE, PATH, FUNCTION};
 }
@@ -309,12 +289,17 @@ export function listuserbizes() {
     const PATH = '/users/:id/businesses';
     const TYPE = 'get';
 
-    let FUNCTION = (req, res) => {
-        let id = req.params.id;
+    let FUNCTION = async (req, res) => {
+        let id = req.params.id; 
 
-        let userBizes = businesses.filter(biz => biz.uid === id);
+        let userBizes = await Biz.find({bizId: { $in: users.filter(user => user.uId === id)[0].ownedBizes }});
 
-        res.status(200).send(utils.paginate(req, userBizes));
+        if (userBizes) {
+            res.status(200).send(utils.paginate(req, userBizes));
+        } else {
+            res.status(400).send('Invalid user id');
+        }
+
     }
 
     return {TYPE, PATH, FUNCTION};
@@ -326,12 +311,17 @@ export function listuserphotos() {
     const PATH = '/users/:id/photos';
     const TYPE = 'get';
 
-    let FUNCTION = (req, res) => {
+    let FUNCTION = async (req, res) => {
         let id = req.params.id;
+        
+        let userPhotos = await Photo.find({pId: { $in: users.filter(user => user.uId === id)[0].uploadedPhotos }});
 
-        let userPhotos = photos.filter(photo => photo.userId === id);
+        if (userPhotos) {
+            res.status(200).send(utils.paginate(req, userPhotos));
+        } else {
+            res.status(400).send('Invalid user id');
+        }
 
-        res.status(200).send(utils.paginate(req, userPhotos));
     }
 
     return {TYPE, PATH, FUNCTION};
@@ -343,25 +333,22 @@ export function addbiztouser() {
     const PATH = '/users/:id/businesses';
     const TYPE = 'post';
 
-    let FUNCTION = (req, res) => {
+    let FUNCTION = async (req, res) => {
         let id = req.params.id;
 
-        if (utils.validate(req.body, biz)) {
-            if (businesses.filter(biz => biz.bizId === req.body.bizId).length === 0) {
-                res.status(400).send('Invalid business ID');
-                return;
-            }
+        if (utils.validate(req.body, biz, Biz)) {
+         
+            let user = await User.findOne({uId: id});
 
-            let user = users.filter(user => user.uId === id)[0];
-            if (user.ownedBizes === undefined) {
-                user.ownedBizes = [req.body.bizId];
-            } else {
+            if (user) {
                 user.ownedBizes.push(req.body.bizId);
+                await user.save();
+
+                res.status(200).send();
             }
-            
-            res.status(200).send();
-        } else {
-            res.status(400).send('Invalid data');
+            else {
+                res.status(400).send('Invalid user id');
+            }
         }
     }
 

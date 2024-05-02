@@ -2,10 +2,8 @@
   "name": "clouddev_node_api",
   "version": "1.0.0",
   "description": "api",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "env-windows": "set MONGO_INITDB_DATABASE=database && set MONGO_INITDB_ROOT_PASSWORD=password && set MONGO_INITDB_ROOT_USERNAME=root",
-    "env-linux": "export MONGO_INITDB_DATABASE=database && export MONGO_INITDB_ROOT_PASSWORD=password && export MONGO_INITDB_ROOT_USERNAME=root",
     "dev": "nodemon server.js"
   },
   "author": "t hook",

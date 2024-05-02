@@ -1,20 +1,26 @@
 
 //new, validate, update match the req.body object to an object template
-export function validate(obj, OG) {
-    // loosely validate the object, strings with "1" in the og are required, arrays are optional
-    // just make sure there is a value if required
-    let newOG = JSON.parse(JSON.stringify(OG));
-    let keys = Object.keys(newOG);
+export function validate(obj, Required, model) {
+    // validate the object, 
+    // Required has strings with "1" in that are required, arrays are always optional
+    // And make sure the type matches the model
+    let newRequired = JSON.parse(JSON.stringify(Required));
+    let keys = Object.keys(newRequired);
     let valid = true;
     try {
         keys.forEach(key => {
-            if (newOG[key] == "1") {
+            if (newRequired[key] == "1") {
                 if (obj[key] === undefined || obj[key] === "") {
                     console.log('Error:', key, 'is required');
                     console.log('Object:', obj);
                     console.log('Value', obj[key]);
                     valid = false;
-                }
+                } 
+            } else if (model[key] && typeof obj[key] !== model[key]) {
+                console.log('Error:', key, 'is not the correct type');
+                console.log('Object:', obj);
+                console.log('Value', obj[key]);
+                valid = false;
             }
         });
     } catch (e) {
@@ -25,42 +31,35 @@ export function validate(obj, OG) {
     return valid;
 }
 
-export function update(obj, newObj) {
-    //update the object with the new object
-    let keys = Object.keys(obj);
-    keys.forEach(key => {
-        obj[key] = newObj[key];
-    });
-
-    return obj;
-}
-
-export function newCopy(obj, OG) {
+export function newCopy(obj, Required) {
     //create a new object from the template
-    let newOG = JSON.parse(JSON.stringify(OG));
-    let keys = Object.keys(newOG);
+    let newRequired = JSON.parse(JSON.stringify(Required));
+    let keys = Object.keys(newRequired);
     keys.forEach(key => {
-        if (newOG[key] = "0") {
-            newOG[key] = "";
+        if (newRequired[key] = "0") {
+            newRequired[key] = "";
         }
-        newOG[key] = obj[key];
+        newRequired[key] = obj[key];
     });
 
-    return newOG;
+    return newRequired;
 }
 
 
 // post, update, get, delete helpers for crud operations
-export function post(arr, OG, pathOG) {
+export function post(model, Required, pathRequired) {
 
     const type = 'post';
-    const func = (req, res) => {
+    const func = async (req, res) => {
 
-        if (validate(req.body, OG)) {
-            arr.push(newCopy(req.body, OG));
+        if (validate(req.body, Required, model)) {
+            
+            let obj = new model(newCopy(req.body, Required));
+
+            await obj.save();
 
             //send the new arr endpoint
-            let path = pathOG + '/' + (arr.length - 1);
+            let path = pathRequired + '/' + req.body[Object.keys(req.body)[0]];
             let status = 201;
             console.log('Sending 201: Created from post:', path);
             res.status(status).send(path);
@@ -73,20 +72,29 @@ export function post(arr, OG, pathOG) {
     return { type, func };
 }
 
-export function put(arr, OG) {
+export function put(model, Required) {
     //requires an id in the url
     const type = 'put';
-    const func = (req, res) => {
+    const func = async (req, res) => {
 
         let id = req.params.id;
-        console.log('id:', id, 'arr:', arr.length);
 
-        if (id < arr.length && validate(req.body, OG)) {
+        if (validate(req.body, Required, model)) {
 
-            arr[id] = update(arr[id], req.body);
-            console.log('Updated:', arr[id]);
-            console.log('Sending 200: OK from put id:', id);
-            res.status(200).send();
+            let obj = await model.findOne({ [Object.keys(Required)[0]]: id });
+
+            if (obj) {
+                let newobj = newCopy(req.body, Required);
+                obj.set(newobj);
+                await obj.save();
+
+                console.log('Sending 200: OK from put id:', id);
+                res.status(200).send();
+            }
+            else {
+                console.log('Sending 400: Invalid id:', id);
+                res.status(400).send('Invalid id');
+            }
 
         } else {
             console.log('Sending 400: Invalid data: ', req.body);
@@ -107,46 +115,57 @@ export function paginate(req, arr) {
 }
 
 
-export function get(arr) {
+export function get(model) {
     //requires names arr items
     const type = 'get';
-    const func = (req, res) => {
+    const func = async (req, res) => {
+
+        let arr = await model.find();
         
-        console.log('Sending 200: OK from get');
-        res.status(200).send(paginate(req, arr));
-    }
-
-    return { type, func };
-}
-
-export function getID(arr) {
-    //requires an id in the url
-    const type = 'get';
-    const func = (req, res) => {
-
-        let id = req.params.id;
-
-        if (id < arr.length) {
-            console.log('Sending 200: OK getting id:', id);
-            res.status(200).send(arr[id]);
+        if (arr) {        
+            console.log('Sending 200: OK from get');
+            res.status(200).send(paginate(req, arr));
         } else {
-            console.log('Sending 400: Invalid id:', id);inva
-            res.status(400).send('Invalid id');
+            console.log('Sending 400: Invalid data');
+            res.status(400).send('Invalid data');
         }
     }
 
     return { type, func };
 }
 
-export function del(arr) {
+export function getID(model, key) {
     //requires an id in the url
-    const type = 'delete';
-    const func = (req, res) => {
+    const type = 'get';
+    const func = async (req, res) => {
 
         let id = req.params.id;
 
-        if (id < arr.length) {
-            arr.splice(id, 1);
+        let obj = await model.findOne({ [key]: id });
+
+        if (obj) {
+            console.log('Sending 200: OK from get id:', id);
+            res.status(200).send(obj);
+        } else {
+            console.log('Sending 400: Invalid id:', id);
+            res.status(400).send('Invalid id');
+        }
+        
+    }
+
+    return { type, func };
+}
+
+export function del(model, key) {
+    //requires an id in the url
+    const type = 'delete';
+    const func = async (req, res) => {
+
+        let id = req.params.id;
+
+        let trydel = model.deleteOne({ [key]: id });
+
+        if (trydel) {
             console.log('Sending 200: OK from delete id:', id);
             res.status(200).send();
         } else {

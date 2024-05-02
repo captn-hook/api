@@ -24,7 +24,7 @@ delete() {
 }
 
 #post 1
-user='{"uId": 0}'
+user='{"uId": 1}'
 post "$user" /users
 
 # openEndpoints: {
@@ -47,7 +47,7 @@ post "$user" /users
 # }
 
 user='{
-    "uId": 0,
+    "uId": 1,
     "ownedBizes": [],
     "photos": [],
     "writtenReviews": []
@@ -59,7 +59,7 @@ n2=15
 n3=25
 
 status "POSTING $n1 BUSINESSES"
-for i in $(seq 0 $n1); do
+for i in $(seq 1 $n1); do
     biz='{
         "bizId": '"$i"',
         "name": "da bomb burritos",
@@ -77,10 +77,11 @@ for i in $(seq 0 $n1); do
 done
 
 status "POSTING $n2 REVIEWS"
-for i in $(seq 0 $n2); do
+for i in $(seq 1 $n2); do
     review='{
+        "rId": '"$i"',
         "bizId": '"$i"',
-        "uId": 0,
+        "uId": 1,
         "stars": 4,
         "cost": 3,
         "text": "great food, great service, great prices!"
@@ -89,11 +90,11 @@ for i in $(seq 0 $n2); do
 done
 
 status "POSTING $n3 PHOTOS"
-for i in $(seq 0 $n3); do
+for i in $(seq 1 $n3); do
     photo='{
         "pId": '"$i"',
         "bizId": '"$i"',
-        "uId": 0,
+        "uId": 1,
         "caption": "yum!",
         "imageUrl": "www.dabombburritos.com/yum.jpg"
     }'
@@ -106,6 +107,7 @@ if [ $(get /businesses | jq '. | length') -eq $n1 ]; then
     printf "SUCCESS: $n1 businesses posted\n"
 else
     printf "FAILURE: $n1 businesses posted\n"
+    exit 1
 fi
 
 status "GETTING ALL REVIEWS"
@@ -113,6 +115,7 @@ if [ $(get /reviews | jq '. | length') -eq $n2 ]; then
     printf "SUCCESS: $n2 reviews posted\n"
 else
     printf "FAILURE: $n2 reviews posted\n"
+    exit 1
 fi
 
 status "GETTING A PHOTOS"
@@ -120,11 +123,12 @@ if [ $(get /photos | jq '. | length') -eq $n3 ]; then
     printf "SUCCESS: $n3 photos posted\n"
 else
     printf "FAILURE: $n3 photos posted\n"
+    exit 1
 fi
 
 # now we will update a business, review, and photo
 updatedBiz='{
-    "bizId": 0,
+    "bizId": 1,
     "name": "ditos",
     "address": "123 main st.",
     "city": "fraggle rock",
@@ -137,78 +141,85 @@ updatedBiz='{
     "email": ""
 }' #check that name is updated
 updatedReview='{
-    "bizId": 0,
-    "uId": 0,
+    "rId": 1,
+    "bizId": 1,
+    "uId": 1,
     "stars": 0,
     "cost": "1",
     "text": "great food, great service, great prices!"
 }' #check that stars and cost are updated
 updatedPhoto='{
-    "pId": 0,
-    "bizId": 0,
-    "uId": 0,
+    "pId": 1,
+    "bizId": 1,
+    "uId": 1,
     "caption": "bleck!",
     "imageUrl": "www.dabombburritos.com/yum.jpg"
 }' #check that bleck!
 
 status "UPDATING A BUSINESS"
-put "$updatedBiz" /businesses/0
-response=$(get /businesses/0 | jq '.name' | tr -d '\n')
+put "$updatedBiz" /businesses/1
+response=$(get /businesses/1 | jq '.name' | tr -d '\n')
 
 if [ $response = '"ditos"' ]; then
     printf "SUCCESS: business updated\n"
 else
     printf "FAILURE: business not updated\n"
+    exit 1
 fi
 
 status "UPDATING A REVIEW"
-put "$updatedReview" /reviews/0
-response=$(get /reviews/0 | jq '.cost' | tr -d '\n')
+put "$updatedReview" /reviews/1
+response=$(get /reviews/1 | jq '.cost' | tr -d '\n')
 
-if [ $response = '"1"' ]; then
+if [ $response = 1 ]; then
     printf "SUCCESS: review updated\n"
 else
     printf "FAILURE: review not updated\n"
+    exit 1
 fi
 
 status "UPDATING A PHOTO"
-put "$updatedPhoto" /photos/0
-response=$(get /photos/0 | jq '.caption' | tr -d '\n')
+put "$updatedPhoto" /photos/1
+response=$(get /photos/1 | jq '.caption' | tr -d '\n')
 
 if [ $response = '"bleck!"' ]; then
     printf "SUCCESS: photo updated\n"
 else
     printf "FAILURE: photo not updated\n"
+    exit 1
 fi
 
 # now we will delete a business, review, and photo
 status "DELETING A BUSINESS"
-delete /businesses/0
+delete /businesses/1
 response=$(get /businesses | jq '. | length')
 
 if [ $response -eq $n1 ]; then
     printf "SUCCESS: business deleted\n"
 else
     printf "FAILURE: business not deleted\n"
+    exit 1
 fi
 
 status "DELETING A REVIEW"
-delete /reviews/0
+delete /reviews/1
 response=$(get /reviews | jq '. | length')
 
 if [ $response -eq $n2 ]; then
     printf "SUCCESS: review deleted\n"
 else
     printf "FAILURE: review not deleted\n"
+    exit 1
 fi
 
 status "DELETING A PHOTO"
-delete /photos/0
+delete /photos/1
 response=$(get /photos | jq '. | length')
 
 if [ $response -eq $n3 ]; then
     printf "SUCCESS: photo deleted\n"
 else
     printf "FAILURE: photo not deleted\n"
+    exit 1
 fi
 

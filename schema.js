@@ -17,6 +17,7 @@ const bizSchema = new Schema({
 });
 
 const reviewSchema = new Schema({
+    rId: String,
     bizId: String,
     uId: String,
     stars: Number,
@@ -34,6 +35,7 @@ const photoSchema = new Schema({
 
 const userSchema = new Schema({
     uId: String,
+    name: String,
     ownedBizes: [String],
     uploadedPhotos: [String],
     writtenReviews: [String],

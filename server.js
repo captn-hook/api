@@ -14,7 +14,7 @@ let db = process.env.MONGO_DB;
 
 let uri = `mongodb://${username}:${pass}@${host}:${dbport}/${db}`;
 
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(uri);
 
 const app = express();
 
@@ -37,22 +37,21 @@ for (let exportedFunc in indexJs) {
     let d = indexJs[exportedFunc];
     let { TYPE: type, PATH: path, FUNCTION: func } = d();
 
-    //switch types get, post, put, delete
     switch (type) {
         case 'get':
-            app.get(path, func);
+            app.get(path, await func);
             openEndpoints.get.push(path);
             break;
         case 'post':
-            app.post(path, func);
+            app.post(path, await func);
             openEndpoints.post.push(path);
             break;
         case 'put':
-            app.put(path, func);
+            app.put(path, await func);
             openEndpoints.put.push(path);
             break;
         case 'delete':
-            app.delete(path, func);
+            app.delete(path, await func);
             openEndpoints.delete.push(path);
             break;
         default:
