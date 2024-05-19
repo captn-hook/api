@@ -1,6 +1,21 @@
 # NODE API FOR RESTAURANTS
 
 services:
+  db-init:
+    build: .
+    environment:
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DB=${MONGO_DB}
+    depends_on:
+      - mongo
+    restart: on-failure
+    command: npm run initdb
+    networks:
+      - node-mongo
+    
   node-api:
     build:
       context: .
@@ -11,20 +26,23 @@ services:
     volumes:
       - .:/app
     depends_on:
+      - db-init
       - mongo
     networks:
       - node-mongo
     environment:
-      - MONGO_USERNAME=root
-      - MONGO_PASSWORD=password
-      - MONGO_HOST=mongo-server
-      - MONGO_PORT=27017
-      - MONGO_DB=restaurants
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DB=${MONGO_DB}
+    restart: on-failure
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "5"
+
   mongo:
     command: mongod --quiet --logpath /dev/null
     image: mongo
@@ -34,9 +52,9 @@ services:
     networks:
       - node-mongo
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=password
-      - MONGO_INITDB_DATABASE=restaurants
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
       - ./mongo-init/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 

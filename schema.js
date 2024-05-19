@@ -4,6 +4,7 @@ const { Schema, model } = mongoose;
 // Schemas
 const bizSchema = new Schema({
     bizId: String,
+    uId: String,
     name: String,
     address: String,
     city: String,
@@ -36,6 +37,8 @@ const photoSchema = new Schema({
 const userSchema = new Schema({
     uId: String,
     name: String,
+    email: String,
+    password_hash: String,
     ownedBizes: [String],
     uploadedPhotos: [String],
     writtenReviews: [String],

@@ -4,11 +4,13 @@
   "description": "api",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "initdb": "node initDb.js"
   },
   "author": "t hook",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "mongodb": "^6.5.0",

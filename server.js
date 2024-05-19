@@ -1,20 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
 
 import * as indexJs from './index.js';
 
 import web_interface from './interface.js';
 
-let username = process.env.MONGO_USERNAME;
-let pass = process.env.MONGO_PASSWORD;
-let host = process.env.MONGO_HOST;
-let dbport = process.env.MONGO_PORT;
-let db = process.env.MONGO_DB;
+import connect from './dbconnect.js';
 
-let uri = `mongodb://${username}:${pass}@${host}:${dbport}/${db}`;
-
-mongoose.connect(uri);
+connect();
 
 const app = express();
 
