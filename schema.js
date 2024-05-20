@@ -39,6 +39,7 @@ const userSchema = new Schema({
     name: String,
     email: String,
     password_hash: String,
+    admin: { type: Boolean, default: false },
     ownedBizes: [String],
     uploadedPhotos: [String],
     writtenReviews: [String],

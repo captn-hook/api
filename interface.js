@@ -1,5 +1,3 @@
-
-import { model } from 'mongoose';
 import { Biz, Review, Photo, User } from './schema.js';
 
 let data = [Biz, Review, Photo, User];

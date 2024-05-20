@@ -5,7 +5,7 @@ import connect from './dbconnect.js';
 import businessData from './data/businesses.js';
 import reviewData from './data/reviews.js';
 import photoData from './data/photos.js';
-import userData from './data/users.js';
+import userData from './data/users_salty.js';
 
 // delete all data then bulk write all data
 async function initDb() {

@@ -1,4 +1,5 @@
-
+import jwt from 'jsonwebtoken';
+import { User } from './schema.js';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
     // validate the object, 
@@ -11,15 +12,9 @@ export function validate(obj, Required, model) {
         keys.forEach(key => {
             if (newRequired[key] == "1") {
                 if (obj[key] === undefined || obj[key] === "") {
-                    console.log('Error:', key, 'is required');
-                    console.log('Object:', obj);
-                    console.log('Value', obj[key]);
                     valid = false;
-                } 
+                }
             } else if (model[key] && typeof obj[key] !== model[key]) {
-                console.log('Error:', key, 'is not the correct type');
-                console.log('Object:', obj);
-                console.log('Value', obj[key]);
                 valid = false;
             }
         });
@@ -53,7 +48,18 @@ export function post(model, Required, pathRequired) {
     const func = async (req, res) => {
 
         if (validate(req.body, Required, model)) {
-            
+
+            //posts should always have an authorized user
+            const user = await checkAuth(req.headers.authorization);
+            if (!user) {
+                return res.status(403).send('Forbidden');
+            } else if (user.admin) {
+                //whatever man
+                console.log('Admin is posting:', user.admin, user.uId, req.body.uId);
+            } else if (user.uId !== req.body.uId) {
+                return res.status(403).send('Forbidden');
+            }
+
             let obj = new model(newCopy(req.body, Required));
 
             await obj.save();
@@ -61,11 +67,9 @@ export function post(model, Required, pathRequired) {
             //send the new arr endpoint
             let path = pathRequired + '/' + req.body[Object.keys(req.body)[0]];
             let status = 201;
-            console.log('Sending 201: Created from post:', path);
             res.status(status).send(path);
 
         } else {
-            console.log('Sending 400: Invalid data from post:', req.body);
             res.status(400).send(`Invalid data`);
         }
     }
@@ -83,21 +87,27 @@ export function put(model, Required) {
 
             let obj = await model.findOne({ [Object.keys(Required)[0]]: id });
 
+            //put should always authorize the uIds match
+            const user = checkAuth(req.headers.authorization);
+            if (!user) {
+                res.status(403).send('Forbidden');
+            } else if (user.admin) {
+            } else if (obj && user.uId !== obj.uId) {
+                res.status(403).send('Forbidden');
+            }
+
             if (obj) {
                 let newobj = newCopy(req.body, Required);
                 obj.set(newobj);
                 await obj.save();
 
-                console.log('Sending 200: OK from put id:', id);
                 res.status(200).send();
             }
             else {
-                console.log('Sending 400: Invalid id:', id);
                 res.status(400).send('Invalid id');
             }
 
         } else {
-            console.log('Sending 400: Invalid data: ', req.body);
             res.status(400).send(`Invalid data`);
         }
     }
@@ -106,12 +116,12 @@ export function put(model, Required) {
 }
 
 export function paginate(req, arr) {
-        const page = req.query.page || 1;
-        const limit = req.query.limit || arr.length;
-        const start = (page - 1) * limit;
-        const end = page * limit;
+    const page = req.query.page || 1;
+    const limit = req.query.limit || arr.length;
+    const start = (page - 1) * limit;
+    const end = page * limit;
 
-        return arr.slice(start, end);
+    return arr.slice(start, end);
 }
 
 
@@ -121,12 +131,10 @@ export function get(model) {
     const func = async (req, res) => {
 
         let arr = await model.find();
-        
-        if (arr) {        
-            console.log('Sending 200: OK from get');
+
+        if (arr) {
             res.status(200).send(paginate(req, arr));
         } else {
-            console.log('Sending 400: Invalid data');
             res.status(400).send('Invalid data');
         }
     }
@@ -144,13 +152,11 @@ export function getID(model, key) {
         let obj = await model.findOne({ [key]: id });
 
         if (obj) {
-            console.log('Sending 200: OK from get id:', id);
             res.status(200).send(obj);
         } else {
-            console.log('Sending 400: Invalid id:', id);
             res.status(400).send('Invalid id');
         }
-        
+
     }
 
     return { type, func };
@@ -166,10 +172,8 @@ export function del(model, key) {
         let trydel = model.deleteOne({ [key]: id });
 
         if (trydel) {
-            console.log('Sending 200: OK from delete id:', id);
             res.status(200).send();
         } else {
-            console.log('Sending 400: Invalid id:', id);
             res.status(400).send('Invalid id');
         }
     }
@@ -177,3 +181,40 @@ export function del(model, key) {
     return { type, func };
 }
 
+export async function checkAuth(authorization) {
+    if (!authorization) {
+        console.log('no authorization');
+        return null;
+    }
+    try {
+        const token = authorization.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+        
+        //find user by id
+        const user = await User.findById(decoded._id).exec();
+        return user;
+    }
+    catch (e) {
+        console.log('Error:', e);
+        return null;
+    }
+}
+
+export function authorize(uId = null, admin = false) {
+    try {
+
+        const user = checkAuth(req.headers.authorization);
+        if (!user) {
+            return false;
+        } else if (user.admin) {
+            return true;
+        } else if (uId && user.uId !== uId) {
+            return false;
+        } else if (admin && !req.user.admin) {
+            return false;
+        } else {
+            return true;
+        }
+    } catch (e) {
+    }
+}
