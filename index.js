@@ -1,7 +1,8 @@
-import { Biz, Review, Photo, User } from './schema.js';
-
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import upload from './server.js';
+
+import { Biz, Review, Photo, User } from './schema.js';
 
 import * as utils from './utils.js';
 
@@ -98,7 +99,7 @@ const review = {
 export function addreview() {
     const PATH = '/businesses/:id/reviews';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(Review, review, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.post(Review, review, PATH, parameterid = 'bizId');
 
     return { TYPE, PATH, FUNCTION };
 
@@ -200,7 +201,7 @@ const photo = {
 export function uploadphoto() {
     const PATH = '/businesses/:id/photos';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(Photo, photo, PATH);
+    let { type: TYPE, func: FUNCTION } = utils.post(Photo, photo, PATH, parameterid = 'bizId');
 
     return { TYPE, PATH, FUNCTION };
 }

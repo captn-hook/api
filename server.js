@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 
 import * as indexJs from './index.js';
 
@@ -14,6 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const upload = multer({ dest: `${__dirname}/uploads` });
 
 //port from package.json
 const port = process.env.PORT || 8000;

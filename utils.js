@@ -42,7 +42,7 @@ export function newCopy(obj, Required) {
 
 
 // post, update, get, delete helpers for crud operations
-export function post(model, Required, pathRequired) {
+export function post(model, Required, pathRequired, parameterid=null) {
 
     const type = 'post';
     const func = async (req, res) => {
@@ -57,6 +57,8 @@ export function post(model, Required, pathRequired) {
                 //whatever man
                 console.log('Admin is posting:', user.admin, user.uId, req.body.uId);
             } else if (user.uId !== req.body.uId) {
+                return res.status(403).send('Forbidden');
+            } else if (parameterid && req.body[parameterid] != req.params.id) {
                 return res.status(403).send('Forbidden');
             }
 
