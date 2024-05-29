@@ -1,10 +1,12 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import upload from './server.js';
+import mongodb from 'mongodb';
 
 import { Biz, Review, Photo, User } from './schema.js';
 
 import * as utils from './utils.js';
+
+const bucket = new mongodb.GridFSBucket(mongodb.getDb(process.env.MONGO_DB));
 
 // businesses
 const biz = {
@@ -200,8 +202,24 @@ const photo = {
 // POST /businesses/:id/photos
 export function uploadphoto() {
     const PATH = '/businesses/:id/photos';
+    const TYPE = 'file';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(Photo, photo, PATH, parameterid = 'bizId');
+    const f1 = utils.post(Photo, photo, PATH, parameterid = 'bizId');
+
+    const FUNCTION = async (req, res) => {
+        // if authorized save the file
+        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!req.file) { return res.status(400).send('No file uploaded'); }
+        // save the file and remove it from ./uploads
+        utils.uploadtobucket(bucket, req.file.filename);
+        // create a pId if needed
+        if (!req.body.pId) {
+            let pId = await utils.getNextId(Photo);
+            req.body.pId = pId;
+        }
+        // then post metadata as usual
+        await f1.func(req, res);
+    }
 
     return { TYPE, PATH, FUNCTION };
 }
@@ -210,18 +228,56 @@ export function uploadphoto() {
 // DELETE /photos/:id
 export function removephoto() {
     const PATH = '/photos/:id';
+    const TYPE = 'delete';
+    
+    const f1 = utils.del(Photo, Object.keys(photo)[0]);
+    
+    const FUNCTION = async (req, res) => {
+        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
 
-    let { type: TYPE, func: FUNCTION } = utils.del(Photo, Object.keys(photo)[0]);
+        let photo = await Photo.findOne({ pId: req.params.id });
+        if (!photo) { return res.status(400).send('Invalid photo id'); }    
+
+        // remove the file from the bucket
+        utils.deletefrombucket(bucket, photo.imageUrl);
+
+        await f1.func(req, res);
+    }
 
     return { TYPE, PATH, FUNCTION };
 }
 
-// modify the caption of a photo
+// modify a photo
 // POST /photos/:id
 export function updatephotocaption() {
     const PATH = '/photos/:id';
+    const TYPE = 'file';
 
-    let { type: TYPE, func: FUNCTION } = utils.put(Photo, photo, PATH);
+    const f1 = utils.put(Photo, photo);
+
+    const FUNCTION = async (req, res) => {
+        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+
+        let photo = await Photo.findOne({ pId: req.params.id });
+
+        if (!photo) { return res.status(400).send('Invalid photo id'); } 
+
+        if (req.file) {
+            // remove the old file from the bucket
+            utils.deletefrombucket(bucket, photo.imageUrl);
+            // save the new file and remove it from ./uploads
+            utils.uploadtobucket(bucket, req.file.filename);
+            photo.imageUrl = req.file.filename;
+        }   
+
+        if (!req.body.pId) {
+            let pId = await utils.getNextId(Photo);
+            req.body.pId = pId;
+        }
+        
+        await f1.func(req, res);
+
+    }
 
     return { TYPE, PATH, FUNCTION };
 }
@@ -230,13 +286,26 @@ export function updatephotocaption() {
 // GET /photos/:id
 export function getphoto() {
     const PATH = '/photos/:id';
+    const TYPE = 'get';
 
-    let { type: TYPE, func: FUNCTION } = utils.getID(Photo, Object.keys(photo)[0]);
+    const FUNCTION = async (req, res) => {
+        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
 
+        const fileurl = await Photo.findOne({ pId: req.params.id });
+
+        if (fileurl) {
+            const downloadStream = bucket.openDownloadStreamByName(fileurl.imageUrl);
+            downloadStream.pipe(res);
+        } else {
+            res.status(400).send('Invalid photo id');
+        }
+
+    }
+    
     return { TYPE, PATH, FUNCTION };
 }
 
-// get all photos for testing
+// get all photo metadata for testing
 export function listphotos() {
     const PATH = '/photos';
 
@@ -384,7 +453,7 @@ export function listuserbizes() {
     return { TYPE, PATH, FUNCTION };
 }
 
-// list all photos uploaded by a user
+// list all metadate for photos uploaded by a user
 // GET /users/:id/photos
 export function listuserphotos() {
     const PATH = '/users/:id/photos';

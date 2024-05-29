@@ -49,6 +49,9 @@ for (let exportedFunc in indexJs) {
             app.delete(path, await func);
             openEndpoints.delete.push(path);
             break;
+        case 'file':
+            app.post(upload.single('file'), await func);
+            openEndpoints.post.push(path);
         default:
             console.log('Invalid route type:', type);
             break;

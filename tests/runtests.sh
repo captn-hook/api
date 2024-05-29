@@ -285,3 +285,16 @@ else
     exit 1
 fi
 
+status "UPLOADING PHOTO FILE"
+photopath="./test.png"
+
+response=$(
+    curl -X POST -H "Authorization: Bearer $TOKEN" -F "file=@$photopath" $url/photos | jq '.imageUrl' | tr -d '\n'
+)   #check that the response is a url
+
+if [ -z "$response" ]; then
+    printf "FAILURE: Empty response\n"
+    exit 1
+else
+    printf "SUCCESS: Photo file uploaded\n"
+fi

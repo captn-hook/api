@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from './schema.js';
+import e from 'express';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
     // validate the object, 
@@ -218,5 +219,37 @@ export function authorize(uId = null, admin = false) {
             return true;
         }
     } catch (e) {
+    }
+}
+
+export async function deletefrombucket(bucket, url) {
+    bucket.delete(url, (err) => {
+        if (err) {
+            console.log('Error:', err);
+            return false;
+        } 
+        return true;
+    });
+}
+
+export async function uploadtobucket(bucket, filename) {
+    return fs.createReadStream('./uploads/' + filename).
+        pipe(bucket.openUploadStream(filename)).
+        on('finish', () => {
+            fs.unlink('./uploads/' + filename, (err) => {
+                if (err) {
+                    console.log('Error:', err);
+                }
+            });
+        });
+}
+
+export async function getNewId(model) {
+    let newId = Math.floor(Math.random() * 1000000000); //lol
+    let obj = await model.findOne({ [Object.keys(model.schema.paths)[0]]: newId });
+    if (obj) {
+        return getNewId(model);
+    } else {
+        return newId;
     }
 }

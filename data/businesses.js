@@ -3,6 +3,7 @@ export default {
   [
     {
       "uId": 1,
+      "bizId": 1,
       "name": "Block 15",
       "address": "300 SW Jefferson Ave.",
       "city": "Corvallis",
@@ -15,6 +16,7 @@ export default {
     },
     {
       "uId": 3,
+      "bizId": 2,
       "name": "Corvallis Brewing Supply",
       "address": "121 SW 4th St.",
       "city": "Corvallis",
@@ -27,6 +29,7 @@ export default {
     },
     {
       "uId": 2,
+      "bizId": 3,
       "name": "Robnett's Hardware",
       "address": "400 SW 2nd St.",
       "city": "Corvallis",
@@ -38,6 +41,7 @@ export default {
     },
     {
       "uId": 4,
+      "bizId": 4,
       "name": "First Alternative Co-op North Store",
       "address": "2855 NW Grant Ave.",
       "city": "Corvallis",
@@ -49,6 +53,7 @@ export default {
     },
     {
       "uId": 9,
+      "bizId": 5,
       "name": "WinCo Foods",
       "address": "2335 NW Kings Blvd.",
       "city": "Corvallis",
@@ -60,6 +65,7 @@ export default {
     },
     {
       "uId": 11,
+      "bizId": 6,
       "name": "Fred Meyer",
       "address": "777 NW Kings Blvd.",
       "city": "Corvallis",
@@ -71,6 +77,7 @@ export default {
     },
     {
       "uId": 6,
+      "bizId": 7,
       "name": "Interzone",
       "address": "1563 NW Monroe Ave.",
       "city": "Corvallis",
@@ -82,6 +89,7 @@ export default {
     },
     {
       "uId": 8,
+      "bizId": 8,
       "name": "Bodhi Bakery",
       "address": "500 SW 2nd St.",
       "city": "Corvallis",
@@ -93,6 +101,7 @@ export default {
     },
     {
       "uId": 5,
+      "bizId": 9,
       "name": "Local Boyz",
       "address": "1425 NW Monroe Ave.",
       "city": "Corvallis",
@@ -104,6 +113,7 @@ export default {
     },
     {
       "uId": 7,
+      "bizId": 10,
       "name": "Darkside Cinema",
       "address": "215 SW 4th St.",
       "city": "Corvallis",
@@ -116,6 +126,7 @@ export default {
     },
     {
       "uId": 10,
+      "bizId": 11,
       "name": "The Book Bin",
       "address": "215 SW 4th St.",
       "city": "Corvallis",
@@ -127,6 +138,7 @@ export default {
     },
     {
       "uId": 12,
+      "bizId": 12,
       "name": "Cyclotopia",
       "address": "435 SW 2nd St.",
       "city": "Corvallis",
@@ -138,6 +150,7 @@ export default {
     },
     {
       "uId": 14,
+      "bizId": 13,
       "name": "Corvallis Cyclery",
       "address": "344 SW 2nd St.",
       "city": "Corvallis",
@@ -149,6 +162,7 @@ export default {
     },
     {
       "uId": 13,
+      "bizId": 14,
       "name": "Oregon Coffee & Tea",
       "address": "215 NW Monroe Ave.",
       "city": "Corvallis",
@@ -161,6 +175,7 @@ export default {
     },
     {
       "uId": 15,
+      "bizId": 15,
       "name": "Spaeth Lumber",
       "address": "1585 NW 9th St.",
       "city": "Corvallis",
@@ -172,6 +187,7 @@ export default {
     },
     {
       "uId": 16,
+      "bizId": 16,
       "name": "New Morning Bakery",
       "address": "219 SW 2nd St.",
       "city": "Corvallis",
@@ -183,6 +199,7 @@ export default {
     },
     {
       "uId": 4,
+      "bizId": 17,
       "name": "First Alternative Co-op South Store",
       "address": "1007 SE 3rd St.",
       "city": "Corvallis",
@@ -194,6 +211,7 @@ export default {
     },
     {
       "uId": 1,
+      "bizId": 18,
       "name": "Block 15 Brewery & Tap Room",
       "address": "3415 SW Deschutes St.",
       "city": "Corvallis",

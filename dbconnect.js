@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export default function connect() {
+export default async function connect() {
     let username = process.env.MONGO_USERNAME;
     let pass = process.env.MONGO_PASSWORD;
     let host = process.env.MONGO_HOST;
@@ -9,5 +9,7 @@ export default function connect() {
 
     let uri = `mongodb://${username}:${pass}@${host}:${dbport}/${db}`;
 
-    return mongoose.connect(uri);
+    const databse = mongoose.connect(uri);
+    //return databse promise
+    return databse;
 }

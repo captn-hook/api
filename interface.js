@@ -19,8 +19,6 @@ async function display(d, objName) {
 
     html += `</div>`;
 
-    console.log(html);
-
     return html;
 }    
 
