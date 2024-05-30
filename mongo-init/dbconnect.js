@@ -9,7 +9,11 @@ export default async function connect() {
 
     let uri = `mongodb://${username}:${pass}@${host}:${dbport}/${db}`;
 
-    const databse = mongoose.connect(uri);
-    //return databse promise
-    return databse;
+    mongoose.connect(uri);
+
+    return new Promise((resolve, reject) => {
+        mongoose.connection.once('open', () => {
+            resolve();
+        });
+    });
 }

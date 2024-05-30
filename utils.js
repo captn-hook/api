@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import { User } from './schema.js';
-import e from 'express';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
     // validate the object, 

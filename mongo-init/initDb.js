@@ -6,6 +6,7 @@ import businessData from '../data/businesses.js';
 import reviewData from '../data/reviews.js';
 import photoData from '../data/photos.js';
 import userData from '../data/users_salty.js';
+import mongoose from 'mongoose';
 
 // delete all data then bulk write all data
 async function initDb() {
@@ -17,6 +18,6 @@ async function initDb() {
 
 connect().then(() => {
     initDb().then(() => {
-        console.log('Database initialized.');
+        console.log('Database initialized: ', mongoose.connection.db);
     });
 });

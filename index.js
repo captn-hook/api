@@ -1,13 +1,10 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import mongodb from 'mongodb';
-import mongoose from 'mongoose';
 
 import { Biz, Review, Photo, User } from './schema.js';
 
 import * as utils from './utils.js';
-console.log('db -------------------> ', mongoose.connection.db);
-const bucket = new mongodb.GridFSBucket(mongoose.connection.db, { bucketName: 'photos' });
+
 // businesses
 const biz = {
     bizId: "1",
@@ -101,7 +98,7 @@ const review = {
 export function addreview() {
     const PATH = '/businesses/:id/reviews';
 
-    let { type: TYPE, func: FUNCTION } = utils.post(Review, review, PATH, parameterid = 'bizId');
+    let { type: TYPE, func: FUNCTION } = utils.post(Review, review, PATH, 'bizId');
 
     return { TYPE, PATH, FUNCTION };
 
@@ -204,12 +201,13 @@ export function uploadphoto() {
     const PATH = '/businesses/:id/photos';
     const TYPE = 'file';
 
-    const f1 = utils.post(Photo, photo, PATH, parameterid = 'bizId');
+    const f1 = utils.post(Photo, photo, PATH, 'bizId');
 
     const FUNCTION = async (req, res) => {
         // if authorized save the file
         if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
         if (!req.file) { return res.status(400).send('No file uploaded'); }
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
         // save the file and remove it from ./uploads
         utils.uploadtobucket(bucket, req.file.filename);
         // create a pId if needed
@@ -234,6 +232,7 @@ export function removephoto() {
     
     const FUNCTION = async (req, res) => {
         if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         let photo = await Photo.findOne({ pId: req.params.id });
         if (!photo) { return res.status(400).send('Invalid photo id'); }    
@@ -257,6 +256,7 @@ export function updatephotocaption() {
 
     const FUNCTION = async (req, res) => {
         if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         let photo = await Photo.findOne({ pId: req.params.id });
 
@@ -290,6 +290,7 @@ export function getphoto() {
 
     const FUNCTION = async (req, res) => {
         if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         const fileurl = await Photo.findOne({ pId: req.params.id });
 
