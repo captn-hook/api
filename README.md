@@ -1,5 +1,11 @@
 # run the server and the api
-    docker compose up
+
+you might not need sudo if you use docker compose, but docker-compose exactly the same as docker compose 
+
+    sudo docker-compose up
+
+# restart without rming mongo 
+    sudo docker-compose down --rmi local
 
 this launches the server and the api in the same container from 2 images on a network
 you can visit http://localhost:8000 to see all the collections, or individually at

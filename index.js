@@ -1,13 +1,13 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import mongodb from 'mongodb';
+import mongoose from 'mongoose';
 
 import { Biz, Review, Photo, User } from './schema.js';
 
 import * as utils from './utils.js';
-
-const bucket = new mongodb.GridFSBucket(mongodb.getDb(process.env.MONGO_DB));
-
+console.log('db -------------------> ', mongoose.connection.db);
+const bucket = new mongodb.GridFSBucket(mongoose.connection.db, { bucketName: 'photos' });
 // businesses
 const biz = {
     bizId: "1",

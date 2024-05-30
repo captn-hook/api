@@ -1,11 +1,11 @@
-import { Biz, Review, Photo, User } from './schema.js';
+import { Biz, Review, Photo, User } from '../schema.js';
 import connect from './dbconnect.js';
 
 // import data
-import businessData from './data/businesses.js';
-import reviewData from './data/reviews.js';
-import photoData from './data/photos.js';
-import userData from './data/users_salty.js';
+import businessData from '../data/businesses.js';
+import reviewData from '../data/reviews.js';
+import photoData from '../data/photos.js';
+import userData from '../data/users_salty.js';
 
 // delete all data then bulk write all data
 async function initDb() {

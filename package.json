@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "initdb": "node initDb.js"
+    "initdb": "node ./mongo-init/initDb.js"
   },
   "author": "t hook",
   "license": "ISC",

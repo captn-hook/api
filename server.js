@@ -6,7 +6,7 @@ import * as indexJs from './index.js';
 
 import web_interface from './interface.js';
 
-import connect from './dbconnect.js';
+import connect from './mongo-init/dbconnect.js'
 
 connect();
 
