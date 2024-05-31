@@ -18,6 +18,6 @@ async function initDb() {
 
 connect().then(() => {
     initDb().then(() => {
-        console.log('Database initialized: ', mongoose.connection.db);
+        console.log('Database initialized: ', mongoose.connection.name);
     });
 });
