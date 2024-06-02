@@ -32,6 +32,7 @@ const photoSchema = new Schema({
     uId: String,
     caption: String,
     imageUrl: String,
+    thumbUrl: String,
     filename: String,
 });
 

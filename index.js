@@ -196,6 +196,7 @@ const photo = {
     uId: "1",
     caption: "0",
     imageUrl: "1",
+    thumbUrl: "0",
     filename: "0",
 };
 
@@ -257,7 +258,7 @@ export function listbizphotos() {
     return { TYPE, PATH, FUNCTION };
 }
 
-// get a photo for a business
+// get a photo data for a business
 // GET /businesses/:id/photos/:pid
 export function getbizphoto() {
     const PATH = '/businesses/:id/photos/:pid';
@@ -348,7 +349,7 @@ export function updatephoto() {
     return { TYPE, PATH, FUNCTION };
 }
 
-// get a photo
+// get a photos metadata
 // GET /photos/:id
 export function getphoto() {
     const PATH = '/photos/:id';
