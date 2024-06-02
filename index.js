@@ -200,6 +200,47 @@ const photo = {
     filename: "0",
 };
 
+// download a photo 
+// GET /media/photos/:id.ext
+export function downloadphoto() {
+    const PATH = '/media/photos/:filename';
+    const TYPE = 'get';
+
+    const FUNCTION = async (req, res) => {
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
+
+        const downloadStream = bucket.openDownloadStreamByName(req.params.filename.split('.')[0]);
+        downloadStream.on('error', (err) => {
+            console.log(err);
+            console.log('Sending 500: Server Error from get:', req.params.filename);
+            res.status(500).send('Server Error');
+        })
+        downloadStream.pipe(res);
+    }
+
+    return { TYPE, PATH, FUNCTION };
+}
+
+// download a thumbnail
+// GET /media/thumbs/:id.ext
+export function downloadthumb() {
+    const PATH = '/media/thumbs/:filename';
+    const TYPE = 'get';
+
+    const FUNCTION = async (req, res) => {
+        if (bucket === undefined) { return res.status(500).send('Server Error'); }
+
+        const downloadStream = bucket.openDownloadStreamByName(req.params.filename.split('.')[0]);
+        downloadStream.on('error', () => {
+            console.log('Sending 500: Server Error from get:', req.params.filename);
+            res.status(500).send('Server Error');
+        });
+        downloadStream.pipe(res);
+    }
+
+    return { TYPE, PATH, FUNCTION };
+}
+
 // upload a photo for a business
 // POST /businesses/:id/photos
 export function uploadphoto() {
@@ -216,9 +257,12 @@ export function uploadphoto() {
         // save the file and remove it from ./uploads
         if (req.file) {
             let fname = await utils.uploadtobucket(bucket, req.file.filename);
+            var extension = req.file.mimetype.split('/')[1];
             req.body.filename = fname;
         } else if (req.body.imageUrl) {
-            req.body.filename = req.body.imageUrl.split('/').pop();
+            let fname = await utils.copytobucket(bucket, req.body.imageUrl);
+            var extension = req.body.imageUrl.split('.').pop();
+            req.body.filename = fname;
         }
             
         // create a pId if needed
@@ -227,9 +271,7 @@ export function uploadphoto() {
             req.body.pId = pId;
         }
 
-        //replace :id with the actual id
-        let url = req.get('host') + '/businesses/' + req.params.id;
-        url += '/photos/' + req.body.pId;
+        let url = req.get('host') + '/media/photos/' + req.body.filename + '.' + extension;
         req.body.imageUrl = url;
         
         // then post metadata as usual
@@ -258,7 +300,7 @@ export function listbizphotos() {
     return { TYPE, PATH, FUNCTION };
 }
 
-// get a photo data for a business
+// get photo data for a business
 // GET /businesses/:id/photos/:pid
 export function getbizphoto() {
     const PATH = '/businesses/:id/photos/:pid';
@@ -267,16 +309,8 @@ export function getbizphoto() {
     let FUNCTION = async (req, res) => {
         const photo = await Photo.findOne({ pId: req.params.pid, bizId: req.params.id });
 
-        if (photo && photo.filename) {
-            const downloadStream = bucket.openDownloadStreamByName(photo.filename);
-            downloadStream.on('error', () => {
-                console.log('Sending 500: Server Error from get:', req.params.pid);
-                res.status(500).send('Server Error');
-            });
-            downloadStream.pipe(res);
-
-        } else if (photo && photo.imageUrl) {
-            res.redirect(photo.imageUrl);
+        if (photo) {
+            res.status(200).send(photo);        
         } else {
             console.log('Sending 400: Invalid photo id from get:', req.params.pid);
             res.status(400).send('Invalid photo id');
@@ -354,27 +388,13 @@ export function updatephoto() {
 export function getphoto() {
     const PATH = '/photos/:id';
     const TYPE = 'get';
-
+    
     const FUNCTION = async (req, res) => {
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         const f = await Photo.findOne({ pId: req.params.id });
-        if (f && f.filename) {
-            const downloadStream = bucket.openDownloadStreamByName(f.filename);
-            downloadStream.on('error', () => {
-                if (f.imageUrl) {
-                    console.log('Redirecting:', f.imageUrl);
-                    res.redirect(f.imageUrl);
-                } else {
-                    console.log('Sending 500: Server Error from get:', req.params.id);
-                    res.status(500).send('Server Error');
-                }
-            });
-            downloadStream.pipe(res);
-
-        } else if (f && f.imageUrl) {
-            console.log('Redirecting:', f.imageUrl);
-            res.redirect(f.imageUrl);
+        if (f) {
+            res.status(200).send(f);
         } else {
             console.log('Sending 400: Invalid photo id from get:', req.params.id);
             res.status(400).send('Invalid photo id');

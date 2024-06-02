@@ -23,3 +23,6 @@ echo $response
 
 response=$(curl -X PUT -H "Authorization: Bearer $TOKEN" -F "file=@$photopath" -F "pId=1" -F "bizId=1" -F "uId=1" -F "caption=yum!" -F "imageUrl=https://www.dabombburritos.com/yum.jpg" $url/photos/1)
 echo $response
+
+response=$(curl -X POST -H "Authorization: Bearer $TOKEN" -F "pId=23" -F "bizId=1" -F "uId=1" -F "caption=yum!" -F "imageUrl=https://static01.nyt.com/images/2021/09/14/science/07CAT-STRIPES/07CAT-STRIPES-mediumSquareAt3X-v2.jpg" $url/businesses/1/photos)
+echo $response

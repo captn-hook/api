@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+import https from 'https';
+import http from 'http';
 import { User } from './schema.js';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
@@ -251,6 +253,54 @@ export async function uploadtobucket(bucket, filename) {
         });
 
     return f.filename;
+}
+
+export async function copytobucket(bucket, url) {
+    //copys a file at a remote url to the bucket, also saves my one specific test file locally to not redownload it 1000 times
+    let file = url.split('/').pop();
+    //download the file
+    if (file === '07CAT-STRIPES-mediumSquareAt3X-v2.jpg' && fs.existsSync('./uploads/' + file)) {
+        console.log('File already exists');
+        return file.split('.')[0];
+    }
+
+    let f = fs.createWriteStream('./uploads/' + file)
+        .on('finish', () => {
+            console.log('Downloaded a image');
+        })
+        .on('error', (err) => {
+            console.log('Error:', err);
+        });
+
+    let protocol = url.startsWith('https') ? https : http;
+
+    // request in a Promise
+    await new Promise((resolve, reject) => {
+        protocol.get(url, (response) => {
+            response.pipe(f);
+            response.on('end', resolve);
+            response.on('error', reject);
+        });
+    });
+
+    //upload the file
+    let g = fs.createReadStream('./uploads/' + file)
+        .pipe(bucket.openUploadStream(file.split('.')[0]))
+        .on('finish', () => {
+            console.log('Uploaded a image:', g.filename);
+            if (file !== '07CAT-STRIPES-mediumSquareAt3X-v2.jpg') {
+                fs.unlink('./uploads/' + file, (err) => {
+                    if (err) {
+                        console.log('Error:', err);
+                    }
+                });
+            }
+        })
+        .on('error', (err) => {
+            console.log('Error:', err);
+        });
+
+    return g.filename.split('.')[0];
 }
 
 export async function getNewId(model) {

@@ -59,12 +59,13 @@ for (let exportedFunc in indexJs) {
         case 'file':
             app.post(path, upload.single('file'), await func);
             openEndpoints.upload.push(path);
+            break;
         case 'fileP':
             app.put(path, upload.single('file'), await func);
             openEndpoints.upload.push(path);
+            break;
         default:
             console.log('Invalid route type:', type);
-            console.log( type == 'file' ? 'file' : 'not file');
             break;
     }
 }
