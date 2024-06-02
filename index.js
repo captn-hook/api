@@ -154,7 +154,7 @@ export function listuserreviews() {
     const TYPE = 'get';
 
     let FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
 
         let reviews = await Review.find({ uId: req.params.id });
 
@@ -196,6 +196,7 @@ const photo = {
     uId: "1",
     caption: "0",
     imageUrl: "1",
+    filename: "0",
 };
 
 // upload a photo for a business
@@ -208,16 +209,28 @@ export function uploadphoto() {
 
     const FUNCTION = async (req, res) => {
         // if authorized save the file
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
-        if (!req.file) { return res.status(400).send('No file uploaded'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
+        if (!req.file && !req.body.imageUrl) { return res.status(400).send('No file uploaded'); }
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
         // save the file and remove it from ./uploads
-        utils.uploadtobucket(bucket, req.file.filename);
+        if (req.file) {
+            let fname = await utils.uploadtobucket(bucket, req.file.filename);
+            req.body.filename = fname;
+        } else if (req.body.imageUrl) {
+            req.body.filename = req.body.imageUrl.split('/').pop();
+        }
+            
         // create a pId if needed
-        if (!req.body.pId) {
+        if (!req.body.pId || req.body.pId === '0') {
             let pId = await utils.getNextId(Photo);
             req.body.pId = pId;
         }
+
+        //replace :id with the actual id
+        let url = req.get('host') + '/businesses/' + req.params.id;
+        url += '/photos/' + req.body.pId;
+        req.body.imageUrl = url;
+        
         // then post metadata as usual
         await f1.func(req, res);
     }
@@ -225,23 +238,73 @@ export function uploadphoto() {
     return { TYPE, PATH, FUNCTION };
 }
 
+//get all photos for a business
+// GET /businesses/:id/photos
+export function listbizphotos() {
+    const PATH = '/businesses/:id/photos';
+    const TYPE = 'get';
+
+    let FUNCTION = async (req, res) => {
+        let photos = await Photo.find({ bizId: req.params.id });
+
+        if (photos) {
+            res.status(200).send(utils.paginate(req, photos));
+        } else {
+            res.status(400).send('Invalid business id');
+        }
+    }
+
+    return { TYPE, PATH, FUNCTION };
+}
+
+// get a photo for a business
+// GET /businesses/:id/photos/:pid
+export function getbizphoto() {
+    const PATH = '/businesses/:id/photos/:pid';
+    const TYPE = 'get';
+
+    let FUNCTION = async (req, res) => {
+        const photo = await Photo.findOne({ pId: req.params.pid, bizId: req.params.id });
+
+        if (photo && photo.filename) {
+            const downloadStream = bucket.openDownloadStreamByName(photo.filename);
+            downloadStream.on('error', () => {
+                console.log('Sending 500: Server Error from get:', req.params.pid);
+                res.status(500).send('Server Error');
+            });
+            downloadStream.pipe(res);
+
+        } else if (photo && photo.imageUrl) {
+            res.redirect(photo.imageUrl);
+        } else {
+            console.log('Sending 400: Invalid photo id from get:', req.params.pid);
+            res.status(400).send('Invalid photo id');
+        }
+    }
+
+    return { TYPE, PATH, FUNCTION };
+}
+
+
 // remove a photo
 // DELETE /photos/:id
 export function removephoto() {
     const PATH = '/photos/:id';
     const TYPE = 'delete';
-    
+
     const f1 = utils.del(Photo, Object.keys(photo)[0]);
-    
+
     const FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         let photo = await Photo.findOne({ pId: req.params.id });
-        if (!photo) { return res.status(400).send('Invalid photo id'); }    
+        if (!photo) { return res.status(400).send('Invalid photo id'); }
 
         // remove the file from the bucket
-        utils.deletefrombucket(bucket, photo.imageUrl);
+        if (photo.filename) {
+            utils.deletefrombucket(bucket, photo.filename);
+        }
 
         await f1.func(req, res);
     }
@@ -250,34 +313,34 @@ export function removephoto() {
 }
 
 // modify a photo
-// POST /photos/:id
-export function updatephotocaption() {
+// PUT /photos/:id
+export function updatephoto() {
     const PATH = '/photos/:id';
-    const TYPE = 'file';
+    const TYPE = 'fileP';
 
     const f1 = utils.put(Photo, photo);
 
     const FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
         let photo = await Photo.findOne({ pId: req.params.id });
 
-        if (!photo) { return res.status(400).send('Invalid photo id'); } 
-
-        if (req.file) {
-            // remove the old file from the bucket
-            utils.deletefrombucket(bucket, photo.imageUrl);
-            // save the new file and remove it from ./uploads
-            utils.uploadtobucket(bucket, req.file.filename);
-            photo.imageUrl = req.file.filename;
-        }   
-
+        if (!photo) { return res.status(400).send('Invalid photo id'); }
+        
         if (!req.body.pId) {
             let pId = await utils.getNextId(Photo);
             req.body.pId = pId;
         }
-        
+
+        if (req.file && photo.filename) {
+            // remove the old file from the bucket
+            utils.deletefrombucket(bucket, photo.filename);
+            // save the new file and remove it from ./uploads
+            let fname = await utils.uploadtobucket(bucket, req.file.filename);
+            req.body.filename = fname;            
+        }
+
         await f1.func(req, res);
 
     }
@@ -292,20 +355,32 @@ export function getphoto() {
     const TYPE = 'get';
 
     const FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
 
-        const fileurl = await Photo.findOne({ pId: req.params.id });
-
-        if (fileurl) {
-            const downloadStream = bucket.openDownloadStreamByName(fileurl.imageUrl);
+        const f = await Photo.findOne({ pId: req.params.id });
+        if (f && f.filename) {
+            const downloadStream = bucket.openDownloadStreamByName(f.filename);
+            downloadStream.on('error', () => {
+                if (f.imageUrl) {
+                    console.log('Redirecting:', f.imageUrl);
+                    res.redirect(f.imageUrl);
+                } else {
+                    console.log('Sending 500: Server Error from get:', req.params.id);
+                    res.status(500).send('Server Error');
+                }
+            });
             downloadStream.pipe(res);
+
+        } else if (f && f.imageUrl) {
+            console.log('Redirecting:', f.imageUrl);
+            res.redirect(f.imageUrl);
         } else {
+            console.log('Sending 400: Invalid photo id from get:', req.params.id);
             res.status(400).send('Invalid photo id');
         }
 
     }
-    
+
     return { TYPE, PATH, FUNCTION };
 }
 
@@ -359,7 +434,7 @@ export function adduser() {
             let path = PATH + '/' + req.body[Object.keys(req.body)[0]];
             let status = 201;
             console.log('Sending 201: Created from post:', path);
-            res.status(status).send(path);
+            res.status(status).send(req.get('host') + path);
 
         } else {
             console.log('Sending 400: Invalid data from post:', req.body);
@@ -419,7 +494,7 @@ export function getuser() {
     const PATH = '/users/:id';
     const TYPE = 'get';
     const FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
 
         const user = await User.findOne({ uId: req.params.id });
         if (!user) { return res.status(400).send('Invalid user id'); }
@@ -440,7 +515,7 @@ export function listuserbizes() {
     const TYPE = 'get';
 
     let FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
 
         let id = req.params.id;
 
@@ -464,7 +539,7 @@ export function listuserphotos() {
     const TYPE = 'get';
 
     let FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
 
         let id = req.params.id;
 
@@ -487,7 +562,7 @@ export function addbiztouser() {
     const TYPE = 'post';
 
     let FUNCTION = async (req, res) => {
-        if (!utils.authorize(req.params.id)) { return res.status(403).send('Forbidden'); }
+        if (!await utils.authorize(req.headers.authorization)) { return res.status(403).send('Forbidden'); }
 
         let id = req.params.id;
 

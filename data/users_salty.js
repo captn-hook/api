@@ -2,11 +2,13 @@ export default {
   "users":
     [
       {
+        "uId": "1",
         "name": "Nick Arzner",
         "email": "nick@block15.com",
         "password_hash": "$2a$08$Y00/JO/uN9n0dHKuudRX2eKksWMIHXDLzHWKuz/K67alAYsZRRike"
       },
       {
+        "uId": "2",
         "name": "Tori Lockwood",
         "email": "tori@robnetts.com",
         "password_hash": "$2a$08$Y00/JO/uN9n0dHKuudRX2eKksWMIHXDLzHWKuz/K67alAYsZRRike"

@@ -13,7 +13,7 @@ export var bucket = undefined;
 connect().then(() => {
     console.log('Connected to mongo: ', mongoose.connection.name);
     bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db);
-    console.log('bucket:', bucket);
+    console.log('bucket:', bucket.s.options.bucketName);
 });
 
 const app = express();
@@ -30,7 +30,8 @@ let openEndpoints = {
     post: [],
     get: [],
     put: [],
-    delete: []
+    delete: [],
+    upload: []
 }
 
 for (let exportedFunc in indexJs) {
@@ -56,10 +57,14 @@ for (let exportedFunc in indexJs) {
             openEndpoints.delete.push(path);
             break;
         case 'file':
-            app.post(upload.single('file'), await func);
-            openEndpoints.post.push(path);
+            app.post(path, upload.single('file'), await func);
+            openEndpoints.upload.push(path);
+        case 'fileP':
+            app.put(path, upload.single('file'), await func);
+            openEndpoints.upload.push(path);
         default:
             console.log('Invalid route type:', type);
+            console.log( type == 'file' ? 'file' : 'not file');
             break;
     }
 }

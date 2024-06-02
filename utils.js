@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
 import { User } from './schema.js';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
@@ -12,9 +13,11 @@ export function validate(obj, Required, model) {
         keys.forEach(key => {
             if (newRequired[key] == "1") {
                 if (obj[key] === undefined || obj[key] === "") {
+                    console.log('Missing required:', key);
                     valid = false;
                 }
             } else if (model[key] && typeof obj[key] !== model[key]) {
+                console.log('Type mismatch:', key, obj[key], model[key]);
                 valid = false;
             }
         });
@@ -42,7 +45,7 @@ export function newCopy(obj, Required) {
 
 
 // post, update, get, delete helpers for crud operations
-export function post(model, Required, pathRequired, parameterid=null) {
+export function post(model, Required, pathRequired, parameterid = null) {
 
     const type = 'post';
     const func = async (req, res) => {
@@ -55,7 +58,6 @@ export function post(model, Required, pathRequired, parameterid=null) {
                 return res.status(403).send('Forbidden');
             } else if (user.admin) {
                 //whatever man
-                console.log('Admin is posting:', user.admin, user.uId, req.body.uId);
             } else if (user.uId !== req.body.uId) {
                 return res.status(403).send('Forbidden');
             } else if (parameterid && req.body[parameterid] != req.params.id) {
@@ -69,7 +71,7 @@ export function post(model, Required, pathRequired, parameterid=null) {
             //send the new arr endpoint
             let path = pathRequired + '/' + req.body[Object.keys(req.body)[0]];
             let status = 201;
-            res.status(status).send(path);
+            res.status(status).send(req.get('host') + path.replace(':id', req.params.id));
 
         } else {
             res.status(400).send(`Invalid data`);
@@ -95,7 +97,7 @@ export function put(model, Required) {
                 res.status(403).send('Forbidden');
             } else if (user.admin) {
             } else if (obj && user.uId !== obj.uId) {
-                res.status(403).send('Forbidden');
+                obj.uId = user.uId;
             }
 
             if (obj) {
@@ -103,7 +105,7 @@ export function put(model, Required) {
                 obj.set(newobj);
                 await obj.save();
 
-                res.status(200).send();
+                res.status(200).send(req.get('host') + req.originalUrl);
             }
             else {
                 res.status(400).send('Invalid id');
@@ -191,7 +193,7 @@ export async function checkAuth(authorization) {
     try {
         const token = authorization.split(' ')[1];
         const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
-        
+
         //find user by id
         const user = await User.findById(decoded._id).exec();
         return user;
@@ -202,37 +204,40 @@ export async function checkAuth(authorization) {
     }
 }
 
-export function authorize(uId = null, admin = false) {
+export async function authorize(reqAuth, uId = null, admin = false) {
     try {
 
-        const user = checkAuth(req.headers.authorization);
-        if (!user) {
+        const user = await checkAuth(reqAuth);
+        if (!user || user === null) {
             return false;
         } else if (user.admin) {
             return true;
         } else if (uId && user.uId !== uId) {
+            console.log('Not authorized');
             return false;
         } else if (admin && !req.user.admin) {
+            console.log('Not an admin');
             return false;
         } else {
             return true;
         }
     } catch (e) {
+        console.log('Authorization error:', e);
     }
 }
 
-export async function deletefrombucket(bucket, url) {
-    bucket.delete(url, (err) => {
-        if (err) {
-            console.log('Error:', err);
-            return false;
-        } 
-        return true;
+export async function deletefrombucket(bucket, filename) {
+   
+    //fail silently if url cant be found
+    let f = await bucket.delete(filename).catch((err) => {
+        console.log('Error:', err);
     });
+
+    return f;
 }
 
 export async function uploadtobucket(bucket, filename) {
-    return fs.createReadStream('./uploads/' + filename).
+    let f = await fs.createReadStream('./uploads/' + filename).
         pipe(bucket.openUploadStream(filename)).
         on('finish', () => {
             fs.unlink('./uploads/' + filename, (err) => {
@@ -240,7 +245,12 @@ export async function uploadtobucket(bucket, filename) {
                     console.log('Error:', err);
                 }
             });
+        })
+        .on('error', (err) => {
+            console.log('Error:', err);
         });
+
+    return f.filename;
 }
 
 export async function getNewId(model) {
@@ -251,4 +261,11 @@ export async function getNewId(model) {
     } else {
         return newId;
     }
+}
+
+export async function getNextId(model) {
+    let arr = await model.find();
+    let ids = arr.map(obj => obj[Object.keys(model.schema.paths)[0]]);
+    let max = Math.max(...ids);
+    return max + 1;
 }
