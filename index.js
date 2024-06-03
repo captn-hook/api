@@ -1,12 +1,12 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
+import amqp from 'amqplib/callback_api.js';
 
-import { Biz, Review, Photo, User } from './schema.js';
+import { Biz, Review, Photo, User } from './data/schema.js';
 
 import * as utils from './utils.js';
 
-import { bucket } from './server.js';
+import { bucket, thumbsBucket } from './data/buckets.js';
 
 // businesses
 const biz = {
@@ -228,9 +228,9 @@ export function downloadthumb() {
     const TYPE = 'get';
 
     const FUNCTION = async (req, res) => {
-        if (bucket === undefined) { return res.status(500).send('Server Error'); }
+        if (thumbsBucket === undefined) { return res.status(500).send('Server Error'); }
 
-        const downloadStream = bucket.openDownloadStreamByName(req.params.filename.split('.')[0]);
+        const downloadStream = thumbsBucket.openDownloadStreamByName(req.params.filename.split('.')[0]);
         downloadStream.on('error', () => {
             console.log('Sending 500: Server Error from get:', req.params.filename);
             res.status(500).send('Server Error');
@@ -256,15 +256,17 @@ export function uploadphoto() {
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
         // save the file and remove it from ./uploads
         if (req.file) {
-            let fname = await utils.uploadtobucket(bucket, req.file.filename);
+            var fname = await utils.uploadtobucket(bucket, req.file.filename);
             var extension = req.file.mimetype.split('/')[1];
             req.body.filename = fname;
         } else if (req.body.imageUrl) {
-            let fname = await utils.copytobucket(bucket, req.body.imageUrl);
+            var fname = await utils.copytobucket(bucket, req.body.imageUrl);
             var extension = req.body.imageUrl.split('.').pop();
             req.body.filename = fname;
+        } else {
+            return res.status(400).send('Invalid data');
         }
-            
+
         // create a pId if needed
         if (!req.body.pId || req.body.pId === '0') {
             let pId = await utils.getNextId(Photo);
@@ -273,9 +275,43 @@ export function uploadphoto() {
 
         let url = req.get('host') + '/media/photos/' + req.body.filename + '.' + extension;
         req.body.imageUrl = url;
-        
+
         // then post metadata as usual
-        await f1.func(req, res);
+        await f1.func(req, res).then(() => {
+            console.log('photo upload:', req.body);
+        }).then(() => {
+            // wait for 10 seconds before publishing to RabbitMQ
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    console.log('photo upload:', req.body);
+                    resolve();
+                }, 1000);
+            });
+        }).then(() => {
+            // publish a message to a RabbitMQ queue
+            const opt = { credentials: amqp.credentials.plain(process.env.RABBITMQ_USER, process.env.RABBITMQ_PASS) };
+            amqp.connect(`amqp://${process.env.RABBITMQ_HOST}:${process.env.RABBITMQ_PORT}`, opt, (error0, connection) => {
+                console.log('rabbitmq connection:', connection ? 'success' : 'failure');
+                if (error0) {
+                    console.log('rabbitmq error:', error0);
+                } else {
+                    connection.createChannel((error1, channel) => {
+                        if (error1) {
+                            throw error1;
+                        }
+
+                        const queue = 'photo_upload';
+                        const msg = fname
+
+                        channel.assertQueue(queue, {
+                            durable: false
+                        });
+
+                        channel.sendToQueue(queue, Buffer.from(msg));
+                    });
+                }
+            });
+        });
     }
 
     return { TYPE, PATH, FUNCTION };
@@ -310,7 +346,7 @@ export function getbizphoto() {
         const photo = await Photo.findOne({ pId: req.params.pid, bizId: req.params.id });
 
         if (photo) {
-            res.status(200).send(photo);        
+            res.status(200).send(photo);
         } else {
             console.log('Sending 400: Invalid photo id from get:', req.params.pid);
             res.status(400).send('Invalid photo id');
@@ -362,7 +398,7 @@ export function updatephoto() {
         let photo = await Photo.findOne({ pId: req.params.id });
 
         if (!photo) { return res.status(400).send('Invalid photo id'); }
-        
+
         if (!req.body.pId) {
             let pId = await utils.getNextId(Photo);
             req.body.pId = pId;
@@ -373,7 +409,7 @@ export function updatephoto() {
             utils.deletefrombucket(bucket, photo.filename);
             // save the new file and remove it from ./uploads
             let fname = await utils.uploadtobucket(bucket, req.file.filename);
-            req.body.filename = fname;            
+            req.body.filename = fname;
         }
 
         await f1.func(req, res);
@@ -388,7 +424,7 @@ export function updatephoto() {
 export function getphoto() {
     const PATH = '/photos/:id';
     const TYPE = 'get';
-    
+
     const FUNCTION = async (req, res) => {
         if (bucket === undefined) { return res.status(500).send('Server Error'); }
 

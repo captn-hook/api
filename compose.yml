@@ -31,6 +31,10 @@ services:
     networks:
       - node-mongo
     environment:
+      - RABBITMQ_HOST=my-rabbit
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=password
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
       - MONGO_HOST=${MONGO_HOST}
@@ -57,8 +61,42 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
       - MONGO_INITDB_DATABASE=${MONGO_DB}
     volumes:
-      - ./mongo-init/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./data/mongo-init/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
+  thumbnail-generator:
+    build:
+      context: .
+      dockerfile: ./consumer/Dockerfile
+    container_name: thumbnail-generator
+    environment:
+      - RABBITMQ_HOST=my-rabbit
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=user
+      - RABBITMQ_PASS=password
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_DB=${MONGO_DB}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+    depends_on:
+      - db-init
+      - rabbitmq
+    networks:
+      - node-mongo
+    restart: on-failure
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: my-rabbit
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - node-mongo
 
 networks:
   node-mongo:

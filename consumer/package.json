@@ -1,0 +1,15 @@
+{
+  "name": "clouddev_node_api",
+  "version": "1.0.0",
+  "description": "api",
+  "main": "./generator.js",
+  "author": "t hook",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "mongoose": "^8.3.3",
+    "sharp": "^0.33.4"
+  },
+  "type": "module",
+  "port": 8000
+}

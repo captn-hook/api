@@ -1,4 +1,4 @@
-import { Biz, Review, Photo, User } from './schema.js';
+import { Biz, Review, Photo, User } from './data/schema.js';
 
 let data = [Biz, Review, Photo, User];
 let objNames = ['biz', 'review', 'photo', 'user'];

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import https from 'https';
 import http from 'http';
-import { User } from './schema.js';
+import { User } from './data/schema.js';
 //new, validate, update match the req.body object to an object template
 export function validate(obj, Required, model) {
     // validate the object, 

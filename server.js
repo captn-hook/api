@@ -1,20 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import mongoose from 'mongoose';
-
 import * as indexJs from './index.js';
 
 import web_interface from './interface.js';
 
-import connect from './mongo-init/dbconnect.js'
+import { createBuckets } from './data/buckets.js';
 
-export var bucket = undefined;
-connect().then(() => {
-    console.log('Connected to mongo: ', mongoose.connection.name);
-    bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db);
-    console.log('bucket:', bucket.s.options.bucketName);
-});
+await createBuckets();
 
 const app = express();
 
